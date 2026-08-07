@@ -72,3 +72,29 @@ Enter an OpenRouter API key in-app: **Прогресс / Колесо → ⚙ �
 # optional developer override
 flutter run --dart-define=OPENROUTER_API_KEY=sk-or-...
 ```
+
+## Android release signing
+
+Release APKs are signed with a local upload keystore (not in git).
+
+1. Create a keystore (example):
+
+```bash
+keytool -genkeypair -v \
+  -keystore "$HOME/Android/improve-yourself-upload.jks" \
+  -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
+  -alias upload
+```
+
+2. Create `android/key.properties` (gitignored):
+
+```
+storePassword=...
+keyPassword=...
+keyAlias=upload
+storeFile=/absolute/path/to/improve-yourself-upload.jks
+```
+
+3. Build: `flutter build apk --release`
+
+Keep the keystore and passwords safe; losing them prevents update-compatible reinstalls of the same signing identity.
