@@ -27,7 +27,13 @@ Useful targets:
 
 ```bash
 flutter run -d chrome    # web
-flutter run -d linux     # if Linux desktop toolchain is installed
+flutter run -d linux     # needs desktop toolchain + libsecret-1-dev
+```
+
+Linux desktop (OpenRouter settings / secure storage):
+
+```bash
+sudo apt-get install -y libsecret-1-dev
 ```
 
 ## Test
@@ -54,6 +60,15 @@ lib/
   data/templates/  # goal template catalog
   data/repositories/
   services/        # notifications, photo store, coach providers
-  presentation/    # Calendar, Wheel, Goals, Progress, Onboarding
+  presentation/    # Calendar, Wheel, Goals, Progress, Settings, Onboarding
   app/             # theme, router, providers
+```
+
+### Live coach (optional)
+
+Enter an OpenRouter API key in-app: **Прогресс / Колесо → ⚙ → Настройки**. Key stays on device. See [docs/COACH.md](docs/COACH.md).
+
+```bash
+# optional developer override
+flutter run --dart-define=OPENROUTER_API_KEY=sk-or-...
 ```

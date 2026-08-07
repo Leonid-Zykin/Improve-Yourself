@@ -73,6 +73,11 @@ Future<void> showCoachDraft(
     final response = await provider.advise(ctx);
     if (!context.mounted) return;
     Navigator.pop(context); // loading
+    if (response.warning != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response.warning!)),
+      );
+    }
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,

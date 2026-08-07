@@ -34,7 +34,7 @@ Local-first Flutter MVP: life areas → goals → actions/habits, two-day rule, 
 ## Schema notes
 
 - Schema version **2+**: `actions.kind`; tables `artifacts`, `reflections`; settings anti-nag fields.
-- Coach: local `CoachContextBuilder` + `StubCoachProvider` (live API later — see COACH.md).
+- Coach: `CoachContextBuilder` + `StubCoachProvider` by default; `OpenRouterCoachProvider` when an API key is set in Settings (see [COACH.md](COACH.md)).
 
 ## Sync contract (fields only — not implemented)
 

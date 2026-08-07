@@ -114,6 +114,14 @@ extension CoachModeX on CoachMode {
         CoachMode.monthlyReview => 'monthly_review',
         CoachMode.yearlyReview => 'yearly_review',
       };
+
+  static CoachMode fromApi(String value) => switch (value) {
+        'goal_decompose' => CoachMode.goalDecompose,
+        'failure_coach' => CoachMode.failureCoach,
+        'monthly_review' => CoachMode.monthlyReview,
+        'yearly_review' => CoachMode.yearlyReview,
+        _ => CoachMode.failureCoach,
+      };
 }
 
 extension GoalStatusX on GoalStatus {

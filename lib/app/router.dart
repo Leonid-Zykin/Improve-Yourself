@@ -7,6 +7,7 @@ import '../presentation/calendar/calendar_screen.dart';
 import '../presentation/goals/goals_screen.dart';
 import '../presentation/onboarding/onboarding_screen.dart';
 import '../presentation/progress/progress_screen.dart';
+import '../presentation/settings/settings_screen.dart';
 import '../presentation/wheel/wheel_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -37,6 +38,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/today', redirect: (context, state) => '/calendar'),
       GoRoute(path: '/recovery', redirect: (context, state) => '/calendar'),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return AppShell(navigationShell: navigationShell);

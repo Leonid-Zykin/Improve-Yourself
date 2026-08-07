@@ -90,6 +90,7 @@ class CoachResponse {
     this.tone = 'supportive',
     this.disclaimer =
         'Черновик от локального stub-коуча; не медицинский совет.',
+    this.warning,
   });
 
   final CoachMode mode;
@@ -100,6 +101,88 @@ class CoachResponse {
   final List<String> reflectionPrompts;
   final String tone;
   final String disclaimer;
+
+  /// Optional UI notice (e.g. live API fell back to stub).
+  final String? warning;
+
+  factory CoachResponse.fromJson(
+    Map<String, dynamic> json, {
+    CoachMode? fallbackMode,
+  }) {
+    final modeRaw = json['mode'] as String?;
+    final mode = modeRaw != null
+        ? CoachModeX.fromApi(modeRaw)
+        : (fallbackMode ?? CoachMode.failureCoach);
+
+    final actionsRaw = json['suggested_actions'];
+    final actions = <CoachSuggestedAction>[];
+    if (actionsRaw is List) {
+      for (final item in actionsRaw) {
+        if (item is! Map) continue;
+        final title = item['title']?.toString().trim() ?? '';
+        if (title.isEmpty) continue;
+        actions.add(
+          CoachSuggestedAction(
+            title: title,
+            kind: item['kind']?.toString() ?? 'other',
+            why: item['why']?.toString(),
+          ),
+        );
+      }
+    }
+
+    final insightsRaw = json['insights'];
+    final insights = insightsRaw is List
+        ? insightsRaw.map((e) => e.toString()).where((s) => s.isNotEmpty).toList()
+        : <String>[];
+
+    final promptsRaw = json['reflection_prompts'];
+    final prompts = promptsRaw is List
+        ? promptsRaw.map((e) => e.toString()).toList()
+        : <String>[];
+
+    final headline = json['headline']?.toString().trim() ?? '';
+    final summary = json['summary']?.toString().trim() ?? '';
+    if (headline.isEmpty || summary.isEmpty) {
+      throw const FormatException('CoachResponse: headline/summary required');
+    }
+
+    return CoachResponse(
+      mode: mode,
+      headline: headline,
+      summary: summary,
+      insights: insights,
+      suggestedActions: actions,
+      reflectionPrompts: prompts,
+      tone: json['tone']?.toString() ?? 'supportive',
+      disclaimer: json['disclaimer']?.toString() ??
+          'Черновик от коуча; не медицинский совет.',
+    );
+  }
+
+  CoachResponse copyWith({
+    CoachMode? mode,
+    String? headline,
+    String? summary,
+    List<String>? insights,
+    List<CoachSuggestedAction>? suggestedActions,
+    List<String>? reflectionPrompts,
+    String? tone,
+    String? disclaimer,
+    String? warning,
+  }) {
+    return CoachResponse(
+      mode: mode ?? this.mode,
+      headline: headline ?? this.headline,
+      summary: summary ?? this.summary,
+      insights: insights ?? this.insights,
+      suggestedActions: suggestedActions ?? this.suggestedActions,
+      reflectionPrompts: reflectionPrompts ?? this.reflectionPrompts,
+      tone: tone ?? this.tone,
+      disclaimer: disclaimer ?? this.disclaimer,
+      warning: warning ?? this.warning,
+    );
+  }
 
   Map<String, Object?> toJson() => {
         'schema_version': 1,

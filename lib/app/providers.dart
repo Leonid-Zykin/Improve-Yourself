@@ -6,7 +6,9 @@ import '../domain/models/models.dart';
 import '../domain/rules/two_day.dart';
 import '../services/coach/coach_context_builder.dart';
 import '../services/coach/coach_provider.dart';
+import '../services/coach/openrouter_coach_provider.dart';
 import '../services/coach/stub_coach_provider.dart';
+import '../services/settings/coach_settings_store.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase.open();
@@ -18,8 +20,47 @@ final repositoryProvider = Provider<AppRepository>((ref) {
   return AppRepository(ref.watch(databaseProvider));
 });
 
+final coachSettingsStoreProvider = Provider<CoachSettingsStore>((ref) {
+  return CoachSettingsStore();
+});
+
+final coachSettingsProvider = FutureProvider<CoachSettings>((ref) async {
+  return ref.watch(coachSettingsStoreProvider).load();
+});
+
+/// Developer override: `flutter run --dart-define=OPENROUTER_API_KEY=...`
+const _dartDefineOpenRouterKey = String.fromEnvironment('OPENROUTER_API_KEY');
+
+String? _resolveOpenRouterApiKey(CoachSettings? settings) {
+  final fromSettings = settings?.apiKey?.trim();
+  if (fromSettings != null && fromSettings.isNotEmpty) return fromSettings;
+  final fromDefine = _dartDefineOpenRouterKey.trim();
+  if (fromDefine.isNotEmpty) return fromDefine;
+  return null;
+}
+
+/// True when a key is available (Settings or dart-define) → live OpenRouter.
+final coachIsLiveProvider = Provider<bool>((ref) {
+  final settings = ref.watch(coachSettingsProvider).asData?.value;
+  return _resolveOpenRouterApiKey(settings) != null;
+});
+
 final coachProvider = Provider<CoachProvider>((ref) {
-  return StubCoachProvider();
+  final settings = ref.watch(coachSettingsProvider).asData?.value;
+  final key = _resolveOpenRouterApiKey(settings);
+  if (key == null) return StubCoachProvider();
+
+  final model = settings?.modelId.trim().isNotEmpty == true
+      ? settings!.modelId.trim()
+      : CoachSettingsStore.defaultModelId;
+
+  final live = OpenRouterCoachProvider(
+    apiKey: key,
+    model: model,
+    fallback: StubCoachProvider(),
+  );
+  ref.onDispose(live.dispose);
+  return live;
 });
 
 final coachContextBuilderProvider = Provider<CoachContextBuilder>((ref) {
