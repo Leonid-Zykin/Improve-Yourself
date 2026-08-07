@@ -51,7 +51,7 @@ Evidence attached to a goal, life area, action, and/or check-in.
 
 1. **Goals** — per-goal / area timeline + “добавить артефакт”
 2. **After check-in** — soft suggestion when action `kind` implies evidence (workout photo, pages read, job log…)
-3. **Manual** from Goals / Today suggestion sheet
+3. **Manual** from Goals / Calendar suggestion sheet
 
 Photos are copied into `{appDocuments}/artifacts/{id}.jpg` (and optional `…_thumb.jpg`). Never uploaded.
 

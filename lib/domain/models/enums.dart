@@ -29,7 +29,7 @@ enum TwoDayState {
   /// Exactly 2 missed days — one day left before soft break.
   warning,
 
-  /// 3+ missed days — soft break, needs Recovery.
+  /// 3+ missed days — soft break; surfaced on Calendar.
   broken,
 }
 

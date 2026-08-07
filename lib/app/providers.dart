@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/db/database.dart' show AppDatabase;
 import '../data/repositories/app_repository.dart';
 import '../domain/models/models.dart';
+import '../domain/rules/two_day.dart';
 import '../services/coach/coach_context_builder.dart';
 import '../services/coach/coach_provider.dart';
 import '../services/coach/stub_coach_provider.dart';
@@ -48,6 +49,27 @@ final artifactsProvider =
 
 final todayPlanProvider = StreamProvider<List<TodaySubject>>((ref) {
   return ref.watch(repositoryProvider).watchTodayPlan();
+});
+
+/// Selected local calendar day (date-only).
+final selectedCalendarDateProvider = StateProvider<DateTime>((ref) {
+  final n = DateTime.now();
+  return DateTime(n.year, n.month, n.day);
+});
+
+final dayPlanProvider =
+    StreamProvider.autoDispose.family<List<TodaySubject>, String>((ref, dateKey) {
+  final day = parseLocalDate(dateKey);
+  return ref.watch(repositoryProvider).watchPlanForDate(day);
+});
+
+final calendarMonthProvider = FutureProvider.autoDispose
+    .family<Map<String, CalendarDayMarker>, String>((ref, yearMonth) async {
+  ref.watch(todayPlanProvider); // refresh when check-ins change
+  final parts = yearMonth.split('-');
+  final year = int.parse(parts[0]);
+  final month = int.parse(parts[1]);
+  return ref.read(repositoryProvider).getMonthMarkers(year: year, month: month);
 });
 
 final recoveryProvider = StreamProvider<List<RecoveryItem>>((ref) {

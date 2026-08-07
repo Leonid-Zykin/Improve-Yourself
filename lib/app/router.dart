@@ -3,18 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'providers.dart';
+import '../presentation/calendar/calendar_screen.dart';
 import '../presentation/goals/goals_screen.dart';
 import '../presentation/onboarding/onboarding_screen.dart';
 import '../presentation/progress/progress_screen.dart';
-import '../presentation/recovery/recovery_screen.dart';
-import '../presentation/today/today_screen.dart';
 import '../presentation/wheel/wheel_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final profileAsync = ref.watch(profileProvider);
 
   return GoRouter(
-    initialLocation: '/today',
+    initialLocation: '/calendar',
     refreshListenable: _RouterRefresh(ref),
     redirect: (context, state) {
       final goingOnboarding = state.matchedLocation == '/onboarding';
@@ -27,7 +26,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/onboarding';
       }
       if (profile.onboardingCompleted && goingOnboarding) {
-        return '/today';
+        return '/calendar';
       }
       return null;
     },
@@ -36,6 +35,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
+      GoRoute(path: '/today', redirect: (context, state) => '/calendar'),
+      GoRoute(path: '/recovery', redirect: (context, state) => '/calendar'),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return AppShell(navigationShell: navigationShell);
@@ -44,8 +45,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/today',
-                builder: (context, state) => const TodayScreen(),
+                path: '/calendar',
+                builder: (context, state) => const CalendarScreen(),
               ),
             ],
           ),
@@ -70,14 +71,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/progress',
                 builder: (context, state) => const ProgressScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/recovery',
-                builder: (context, state) => const RecoveryScreen(),
               ),
             ],
           ),
@@ -112,10 +105,18 @@ class AppShell extends ConsumerWidget {
           initialLocation: i == navigationShell.currentIndex,
         ),
         destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.today_outlined),
-            selectedIcon: Icon(Icons.today),
-            label: 'Сегодня',
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: badge > 0,
+              label: Text('$badge'),
+              child: const Icon(Icons.calendar_month_outlined),
+            ),
+            selectedIcon: Badge(
+              isLabelVisible: badge > 0,
+              label: Text('$badge'),
+              child: const Icon(Icons.calendar_month),
+            ),
+            label: 'Календарь',
           ),
           const NavigationDestination(
             icon: Icon(Icons.donut_large_outlined),
@@ -131,19 +132,6 @@ class AppShell extends ConsumerWidget {
             icon: Icon(Icons.insights_outlined),
             selectedIcon: Icon(Icons.insights),
             label: 'Прогресс',
-          ),
-          NavigationDestination(
-            icon: Badge(
-              isLabelVisible: badge > 0,
-              label: Text('$badge'),
-              child: const Icon(Icons.healing_outlined),
-            ),
-            selectedIcon: Badge(
-              isLabelVisible: badge > 0,
-              label: Text('$badge'),
-              child: const Icon(Icons.healing),
-            ),
-            label: 'Возврат',
           ),
         ],
       ),

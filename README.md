@@ -54,6 +54,6 @@ lib/
   data/templates/  # goal template catalog
   data/repositories/
   services/        # notifications, photo store, coach providers
-  presentation/    # Today, Wheel, Goals, Progress, Recovery, Onboarding
+  presentation/    # Calendar, Wheel, Goals, Progress, Onboarding
   app/             # theme, router, providers
 ```

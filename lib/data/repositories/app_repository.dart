@@ -466,14 +466,26 @@ class AppRepository {
     return rows.map((r) => r.localDate).toSet();
   }
 
-  // ── Today plan ────────────────────────────────────────────────────
+  // ── Day plan / calendar ───────────────────────────────────────────
 
   Stream<List<TodaySubject>> watchTodayPlan() {
-    // Recompute when any relevant table changes.
-    return db.select(db.checkIns).watch().asyncMap((_) => getTodayPlan());
+    return watchPlanForDate(todayLocal);
   }
 
-  Future<List<TodaySubject>> getTodayPlan() async {
+  Stream<List<TodaySubject>> watchPlanForDate(DateTime localDate) {
+    final day = DateTime(localDate.year, localDate.month, localDate.day);
+    return db.select(db.checkIns).watch().asyncMap((_) => getPlanForDate(day));
+  }
+
+  Future<List<TodaySubject>> getTodayPlan() => getPlanForDate(todayLocal);
+
+  /// Plan for [localDate]: past/today show full active set; future only daily
+  /// actions + habits (planned schedule).
+  Future<List<TodaySubject>> getPlanForDate(DateTime localDate) async {
+    final day = DateTime(localDate.year, localDate.month, localDate.day);
+    final dateKey = formatLocalDate(day);
+    final isFuture = day.isAfter(todayLocal);
+
     final actions = await (db.select(db.actions)
           ..where((t) => t.active.equals(true) & t.deletedAt.isNull()))
         .get();
@@ -481,17 +493,20 @@ class AppRepository {
           ..where((t) => t.active.equals(true) & t.deletedAt.isNull()))
         .get();
 
-    final todayChecks = await (db.select(db.checkIns)
+    final dayChecks = await (db.select(db.checkIns)
           ..where((t) =>
-              t.localDate.equals(todayKey) & t.deletedAt.isNull()))
+              t.localDate.equals(dateKey) & t.deletedAt.isNull()))
         .get();
     final bySubject = {
-      for (final c in todayChecks) '${c.subjectType}:${c.subjectId}': c,
+      for (final c in dayChecks) '${c.subjectType}:${c.subjectId}': c,
     };
 
     final result = <TodaySubject>[];
 
     for (final a in actions) {
+      final schedule = ActionScheduleX.fromDb(a.schedule);
+      if (isFuture && schedule != ActionSchedule.daily) continue;
+
       final done = await _doneDatesFor(SubjectType.action, a.id);
       final two = _twoDay.evaluate(doneDates: done, today: todayLocal);
       final key = '${SubjectType.action.dbValue}:${a.id}';
@@ -505,6 +520,7 @@ class AppRepository {
         twoDay: two,
         actionKind: ActionKindX.fromDb(a.kind),
         goalId: a.goalId,
+        schedule: schedule,
         todayStatus:
             check == null ? null : CheckInStatusX.fromDb(check.status),
       ));
@@ -534,6 +550,86 @@ class AppRepository {
     }
 
     return result;
+  }
+
+  /// Activity + two-day markers for each day in [year]/[month] (1–12).
+  Future<Map<String, CalendarDayMarker>> getMonthMarkers({
+    required int year,
+    required int month,
+  }) async {
+    final first = DateTime(year, month, 1);
+    final last = DateTime(year, month + 1, 0);
+    final fromKey = formatLocalDate(first);
+    final toKey = formatLocalDate(last);
+
+    final checks = await (db.select(db.checkIns)
+          ..where((t) =>
+              t.localDate.isBiggerOrEqualValue(fromKey) &
+              t.localDate.isSmallerOrEqualValue(toKey) &
+              t.deletedAt.isNull()))
+        .get();
+
+    final activityDates = <String>{};
+    final doneBySubject = <String, Set<String>>{};
+    for (final c in checks) {
+      if (c.status == CheckInStatus.done.dbValue) {
+        activityDates.add(c.localDate);
+        final sk = '${c.subjectType}:${c.subjectId}';
+        (doneBySubject[sk] ??= {}).add(c.localDate);
+      }
+    }
+
+    // Also load done dates before the month for two-day lookback.
+    final lookbackFrom = first.subtract(const Duration(days: 45));
+    final lookbackKey = formatLocalDate(lookbackFrom);
+    final earlier = await (db.select(db.checkIns)
+          ..where((t) =>
+              t.status.equals(CheckInStatus.done.dbValue) &
+              t.localDate.isBiggerOrEqualValue(lookbackKey) &
+              t.localDate.isSmallerThanValue(fromKey) &
+              t.deletedAt.isNull()))
+        .get();
+    for (final c in earlier) {
+      final sk = '${c.subjectType}:${c.subjectId}';
+      (doneBySubject[sk] ??= {}).add(c.localDate);
+    }
+
+    final actions = await (db.select(db.actions)
+          ..where((t) => t.active.equals(true) & t.deletedAt.isNull()))
+        .get();
+    final habits = await (db.select(db.habits)
+          ..where((t) => t.active.equals(true) & t.deletedAt.isNull()))
+        .get();
+    final subjects = <(SubjectType, String)>[
+      for (final a in actions) (SubjectType.action, a.id),
+      for (final h in habits) (SubjectType.habit, h.id),
+    ];
+
+    final markers = <String, CalendarDayMarker>{};
+    for (var d = 1; d <= last.day; d++) {
+      final day = DateTime(year, month, d);
+      final key = formatLocalDate(day);
+      var worst = TwoDayState.ok;
+      if (!day.isAfter(todayLocal)) {
+        for (final (type, id) in subjects) {
+          final done = doneBySubject['${type.dbValue}:$id'] ?? const <String>{};
+          final two = _twoDay.evaluate(doneDates: done, today: day);
+          if (two.state == TwoDayState.broken) {
+            worst = TwoDayState.broken;
+            break;
+          }
+          if (two.state == TwoDayState.warning) {
+            worst = TwoDayState.warning;
+          }
+        }
+      }
+      markers[key] = CalendarDayMarker(
+        localDate: key,
+        hasActivity: activityDates.contains(key),
+        worstState: worst,
+      );
+    }
+    return markers;
   }
 
   // ── Recovery ──────────────────────────────────────────────────────

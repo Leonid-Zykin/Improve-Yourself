@@ -17,7 +17,10 @@ Local-first Flutter MVP: life areas → goals → actions/habits, two-day rule, 
 | `domain/` | Pure models and rules (two-day, consistency, XP, wheel, reflection triggers) — no Flutter/Drift |
 | `data/` | Drift schema, repositories, check-in transactions, template catalog |
 | `application` via Riverpod providers | Streams / futures over repositories; coach context builder |
-| `presentation/` | Screens: Onboarding, Today, Wheel, Goals, Progress, Recovery + reflection/artifact sheets |
+| `presentation/` | Screens: Onboarding, Calendar, Wheel, Goals, Progress + reflection/artifact sheets |
+
+**Bottom nav:** Calendar · Wheel · Goals · Progress. At-risk / broken two-day subjects surface inside Calendar (banner + «Почему выпал?» coach), not a separate tab.
+
 
 ## Domain rules (summary)
 
@@ -46,4 +49,4 @@ Progress screen exports a JSON dump of all tables (`version`, `exported_at`, tab
 
 ## Notifications
 
-Best-effort local notification when Recovery has day-2 (warning) subjects — evening reminder “вернись сегодня”.
+Best-effort local notification when Calendar surfaces day-2 (warning) subjects — evening reminder “вернись сегодня”. At-risk / broken items show in a Calendar banner with «Почему выпал?» (failure_coach).

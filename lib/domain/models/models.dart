@@ -240,7 +240,7 @@ class AppSettings {
   final int maxAutoReflectionsPerDay;
 }
 
-/// A subject on the Today list with optional today's check-in and two-day state.
+/// A subject on the day plan with optional check-in for that local date.
 class TodaySubject {
   const TodaySubject({
     required this.id,
@@ -253,6 +253,7 @@ class TodaySubject {
     this.actionKind,
     this.goalId,
     this.todayStatus,
+    this.schedule = ActionSchedule.daily,
   });
 
   final String id;
@@ -264,9 +265,29 @@ class TodaySubject {
   final HabitKind? habitKind;
   final ActionKind? actionKind;
   final String? goalId;
+  /// Check-in status for the selected plan date (not necessarily "today").
   final CheckInStatus? todayStatus;
+  final ActionSchedule schedule;
 
   bool get isDoneToday => todayStatus == CheckInStatus.done;
+  bool get isDone => todayStatus == CheckInStatus.done;
+}
+
+/// Markers for one day in the month calendar grid.
+class CalendarDayMarker {
+  const CalendarDayMarker({
+    required this.localDate,
+    this.hasActivity = false,
+    this.worstState = TwoDayState.ok,
+  });
+
+  final String localDate;
+  final bool hasActivity;
+  /// Worst two-day state across subjects when evaluated as of this day.
+  final TwoDayState worstState;
+
+  bool get hasWarning => worstState == TwoDayState.warning;
+  bool get hasBroken => worstState == TwoDayState.broken;
 }
 
 class TwoDayResult {
